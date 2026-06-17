@@ -470,6 +470,20 @@ function openFolderDropdown(targetTag, notebookTitle) {
   }, 0);
 }
 
+// Helper to find the actual grid item element (direct child of the grid container)
+function getCardGridItem(cardLink) {
+  let element = cardLink;
+  while (element.parentElement && element.parentElement.tagName !== 'BODY') {
+    const parent = element.parentElement;
+    // If the parent contains multiple notebook links, the current element is the grid item/cell
+    if (parent.querySelectorAll('a.primary-action-button').length > 1) {
+      return element;
+    }
+    element = parent;
+  }
+  return cardLink.parentElement || cardLink;
+}
+
 // Filter notebook elements based on selected folder
 function applyFiltering() {
   // 1. Table rows
@@ -493,9 +507,9 @@ function applyFiltering() {
 
     const title = titleEl.textContent.trim();
     const folderId = notebookFolderMap[title];
-    const cardContainer = cardLink.parentElement;
+    const gridItem = getCardGridItem(cardLink);
     
-    toggleElementVisibility(cardContainer, folderId);
+    toggleElementVisibility(gridItem, folderId);
   });
 }
 
