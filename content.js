@@ -55,7 +55,7 @@ function initStorageListener() {
       }
       if (changed) {
         renderSidebar();
-        injectTagsToRows();
+        injectFolderTags();
         applyFiltering();
       }
     }
@@ -89,7 +89,7 @@ function initObserver() {
     if (welcomeContainer) {
       runSafeDOMMutation(() => {
         setupDashboardLayout(welcomeContainer);
-        injectTagsToRows();
+        injectFolderTags();
         applyFiltering();
       });
     } else {
@@ -154,19 +154,19 @@ function renderSidebar() {
       </button>
     </div>
     <div class="nlmf-folder-list">
-      <button class="nlmf-folder-item ${activeFolderId === 'all' ? 'active' : ''}" data-id="all">
+      <div class="nlmf-folder-item ${activeFolderId === 'all' ? 'active' : ''}" data-id="all" role="button" tabindex="0">
         <span class="nlmf-folder-emoji">📁</span>
         <span class="nlmf-folder-name">All Notebooks</span>
         <span class="nlmf-folder-count">0</span>
-      </button>
-      <button class="nlmf-folder-item ${activeFolderId === 'uncategorized' ? 'active' : ''}" data-id="uncategorized">
+      </div>
+      <div class="nlmf-folder-item ${activeFolderId === 'uncategorized' ? 'active' : ''}" data-id="uncategorized" role="button" tabindex="0">
         <span class="nlmf-folder-emoji">📥</span>
         <span class="nlmf-folder-name">Uncategorized</span>
         <span class="nlmf-folder-count">0</span>
-      </button>
+      </div>
       <div class="nlmf-dropdown-divider"></div>
       ${customFolders.map(folder => `
-        <button class="nlmf-folder-item ${activeFolderId === folder.id ? 'active' : ''}" data-id="${folder.id}" style="border-left: 3px solid ${folder.color || 'transparent'}">
+        <div class="nlmf-folder-item ${activeFolderId === folder.id ? 'active' : ''}" data-id="${folder.id}" style="border-left: 3px solid ${folder.color || 'transparent'}" role="button" tabindex="0">
           <span class="nlmf-folder-emoji">${folder.emoji || '📁'}</span>
           <span class="nlmf-folder-name">${folder.name}</span>
           <span class="nlmf-folder-count">0</span>
@@ -178,7 +178,7 @@ function renderSidebar() {
               <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             </button>
           </div>
-        </button>
+        </div>
       `).join('')}
     </div>
   `;
@@ -202,7 +202,9 @@ function renderSidebar() {
   sidebar.querySelectorAll('.edit-folder').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const folderId = btn.closest('.nlmf-folder-item').dataset.id;
+      const folderItem = btn.closest('.nlmf-folder-item');
+      if (!folderItem) return; // Guard: element may be detached
+      const folderId = folderItem.dataset.id;
       const folder = customFolders.find(f => f.id === folderId);
       if (folder) showFolderModal(folder);
     });
@@ -211,7 +213,9 @@ function renderSidebar() {
   sidebar.querySelectorAll('.delete-folder').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const folderId = btn.closest('.nlmf-folder-item').dataset.id;
+      const folderItem = btn.closest('.nlmf-folder-item');
+      if (!folderItem) return; // Guard: element may be detached
+      const folderId = folderItem.dataset.id;
       const folder = customFolders.find(f => f.id === folderId);
       if (folder && confirm(`Are you sure you want to delete the folder "${folder.name}"? The notebooks inside will not be deleted.`)) {
         deleteFolder(folderId);
@@ -240,31 +244,51 @@ function deleteFolder(id) {
   }
   saveData();
   renderSidebar();
-  injectTagsToRows();
+  injectFolderTags();
   applyFiltering();
 }
 
 // Calculate and update folder badge counts
 function updateFolderCounts() {
-  const rows = document.querySelectorAll('tr.mat-mdc-row');
+  const tableRows = document.querySelectorAll('tr.mat-mdc-row');
+  const cardLinks = document.querySelectorAll('a.primary-action-button');
+  
   const counts = {
-    all: rows.length,
+    all: 0,
     uncategorized: 0
   };
-
   customFolders.forEach(f => counts[f.id] = 0);
 
-  rows.forEach(row => {
-    const title = getNotebookTitle(row);
-    if (!title) return;
-
-    const folderId = notebookFolderMap[title];
-    if (folderId && counts[folderId] !== undefined) {
-      counts[folderId]++;
-    } else {
-      counts['uncategorized']++;
-    }
-  });
+  if (tableRows.length > 0) {
+    counts.all = tableRows.length;
+    tableRows.forEach(row => {
+      const title = getNotebookTitle(row);
+      if (!title) return;
+      const folderId = notebookFolderMap[title];
+      if (folderId && counts[folderId] !== undefined) {
+        counts[folderId]++;
+      } else {
+        counts['uncategorized']++;
+      }
+    });
+  } else if (cardLinks.length > 0) {
+    counts.all = cardLinks.length;
+    cardLinks.forEach(cardLink => {
+      const href = cardLink.getAttribute('href');
+      if (!href || !href.startsWith('/notebook/')) return;
+      const id = href.split('/').pop();
+      const titleEl = document.getElementById(`project-${id}-title`);
+      if (!titleEl) return;
+      
+      const title = titleEl.textContent.trim();
+      const folderId = notebookFolderMap[title];
+      if (folderId && counts[folderId] !== undefined) {
+        counts[folderId]++;
+      } else {
+        counts['uncategorized']++;
+      }
+    });
+  }
 
   const sidebar = document.getElementById('nlmf-sidebar');
   if (!sidebar) return;
@@ -278,11 +302,11 @@ function updateFolderCounts() {
   });
 }
 
-// Inject folder selection tags into rows
-function injectTagsToRows() {
-  const rows = document.querySelectorAll('tr.mat-mdc-row');
-  
-  rows.forEach(row => {
+// Inject folder selection tags into rows (Table View) and cards (Grid View)
+function injectFolderTags() {
+  // 1. Table View
+  const tableRows = document.querySelectorAll('tr.mat-mdc-row');
+  tableRows.forEach(row => {
     const title = getNotebookTitle(row);
     if (!title) return;
 
@@ -300,36 +324,65 @@ function injectTagsToRows() {
       }
     }
 
-    // Render tag pill
-    if (folder) {
-      tagContainer.innerHTML = `
-        <span class="nlmf-notebook-tag" style="border-color: ${folder.color}33; background: ${folder.color}11; color: ${folder.color}">
-          <span>${folder.emoji || '📁'}</span>
-          <span>${folder.name}</span>
-          <span>▾</span>
-        </span>
-      `;
-    } else {
-      tagContainer.innerHTML = `
-        <span class="nlmf-notebook-tag unassigned">
-          <span>+ Folder</span>
-        </span>
-      `;
+    renderTagPill(tagContainer, folder, title);
+  });
+
+  // 2. Grid View
+  const cardLinks = document.querySelectorAll('a.primary-action-button');
+  cardLinks.forEach(cardLink => {
+    const href = cardLink.getAttribute('href');
+    if (!href || !href.startsWith('/notebook/')) return;
+
+    const id = href.split('/').pop();
+    const titleEl = document.getElementById(`project-${id}-title`);
+    if (!titleEl) return;
+
+    const title = titleEl.textContent.trim();
+    const folderId = notebookFolderMap[title];
+    const folder = customFolders.find(f => f.id === folderId);
+
+    const cardContainer = cardLink.parentElement;
+    let tagContainer = cardContainer.querySelector('.nlmf-notebook-tag-container');
+    if (!tagContainer) {
+      tagContainer = document.createElement('div');
+      tagContainer.className = 'nlmf-notebook-tag-container';
+      // Insert tag pill right after the title element in the card DOM
+      titleEl.parentNode.insertBefore(tagContainer, titleEl.nextSibling);
     }
 
-    // Click handler for Tag Opens Dropdown
-    const tag = tagContainer.querySelector('.nlmf-notebook-tag');
-    tag.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent row click navigation!
-      openFolderDropdown(e.target.closest('.nlmf-notebook-tag'), title);
-    });
+    renderTagPill(tagContainer, folder, title);
+  });
+}
+
+// Helper to render tag pill and bind events
+function renderTagPill(container, folder, title) {
+  if (folder) {
+    container.innerHTML = `
+      <span class="nlmf-notebook-tag" style="border-color: ${folder.color}33; background: ${folder.color}11; color: ${folder.color}">
+        <span>${folder.emoji || '📁'}</span>
+        <span>${folder.name}</span>
+        <span>▾</span>
+      </span>
+    `;
+  } else {
+    container.innerHTML = `
+      <span class="nlmf-notebook-tag unassigned">
+        <span>+ Folder</span>
+      </span>
+    `;
+  }
+
+  const tag = container.querySelector('.nlmf-notebook-tag');
+  tag.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault(); // Prevent opening the notebook URL!
+    openFolderDropdown(tag, title);
   });
 }
 
 // Open folder selection dropdown
 let activeDropdown = null;
 function openFolderDropdown(targetTag, notebookTitle) {
-  // Close any existing dropdown
   if (activeDropdown) activeDropdown.remove();
 
   const dropdown = document.createElement('div');
@@ -349,7 +402,6 @@ function openFolderDropdown(targetTag, notebookTitle) {
     `).join('')}
   `;
 
-  // Position dropdown relative to tag
   const rect = targetTag.getBoundingClientRect();
   dropdown.style.position = 'absolute';
   dropdown.style.top = `${rect.bottom + window.scrollY + 4}px`;
@@ -358,10 +410,10 @@ function openFolderDropdown(targetTag, notebookTitle) {
   document.body.appendChild(dropdown);
   activeDropdown = dropdown;
 
-  // Click handlers for dropdown items
   dropdown.querySelectorAll('.nlmf-dropdown-item').forEach(item => {
     item.addEventListener('click', (e) => {
       e.stopPropagation();
+      e.preventDefault();
       const folderId = item.dataset.id;
       if (folderId === 'uncategorized') {
         delete notebookFolderMap[notebookTitle];
@@ -372,14 +424,12 @@ function openFolderDropdown(targetTag, notebookTitle) {
       dropdown.remove();
       activeDropdown = null;
       
-      // Dynamic updates
-      injectTagsToRows();
+      injectFolderTags();
       updateFolderCounts();
       applyFiltering();
     });
   });
 
-  // Close dropdown on click outside
   setTimeout(() => {
     const closeListener = (e) => {
       if (!dropdown.contains(e.target)) {
@@ -392,32 +442,51 @@ function openFolderDropdown(targetTag, notebookTitle) {
   }, 0);
 }
 
-// Filter notebook rows based on selected folder
+// Filter notebook elements based on selected folder
 function applyFiltering() {
-  const rows = document.querySelectorAll('tr.mat-mdc-row');
-
-  rows.forEach(row => {
+  // 1. Table rows
+  const tableRows = document.querySelectorAll('tr.mat-mdc-row');
+  tableRows.forEach(row => {
     const title = getNotebookTitle(row);
     if (!title) return;
-
     const folderId = notebookFolderMap[title];
-    
-    if (activeFolderId === 'all') {
-      row.classList.remove('nlmf-hidden');
-    } else if (activeFolderId === 'uncategorized') {
-      if (!folderId) {
-        row.classList.remove('nlmf-hidden');
-      } else {
-        row.classList.add('nlmf-hidden');
-      }
-    } else {
-      if (folderId === activeFolderId) {
-        row.classList.remove('nlmf-hidden');
-      } else {
-        row.classList.add('nlmf-hidden');
-      }
-    }
+    toggleElementVisibility(row, folderId);
   });
+
+  // 2. Grid cards
+  const cardLinks = document.querySelectorAll('a.primary-action-button');
+  cardLinks.forEach(cardLink => {
+    const href = cardLink.getAttribute('href');
+    if (!href || !href.startsWith('/notebook/')) return;
+    
+    const id = href.split('/').pop();
+    const titleEl = document.getElementById(`project-${id}-title`);
+    if (!titleEl) return;
+
+    const title = titleEl.textContent.trim();
+    const folderId = notebookFolderMap[title];
+    const cardContainer = cardLink.parentElement;
+    
+    toggleElementVisibility(cardContainer, folderId);
+  });
+}
+
+function toggleElementVisibility(element, folderId) {
+  if (activeFolderId === 'all') {
+    element.classList.remove('nlmf-hidden');
+  } else if (activeFolderId === 'uncategorized') {
+    if (!folderId) {
+      element.classList.remove('nlmf-hidden');
+    } else {
+      element.classList.add('nlmf-hidden');
+    }
+  } else {
+    if (folderId === activeFolderId) {
+      element.classList.remove('nlmf-hidden');
+    } else {
+      element.classList.add('nlmf-hidden');
+    }
+  }
 }
 
 // Show custom popup modal for create/edit folder
@@ -521,7 +590,7 @@ function showFolderModal(existingFolder = null) {
     saveData();
     modal.remove();
     renderSidebar();
-    injectTagsToRows();
+    injectFolderTags();
     applyFiltering();
   };
 

@@ -37,8 +37,8 @@ body.dark-theme {
 }
 
 /* Positioning adjustments for welcome-page-container and sidebar */
-.welcome-page-container.welcome-page-container-featured-projects-enabled-tab-view {
-  padding-left: 290px !important; /* 250px sidebar + 24px gap + 16px margin */
+.welcome-page-container {
+  margin-left: 290px !important; /* Push the entire container right to clear the fixed sidebar */
   box-sizing: border-box !important;
 }
 
@@ -234,6 +234,8 @@ body.dark-theme .nlmf-folder-item.active .nlmf-folder-count {
   align-items: center;
   margin-left: 8px;
   vertical-align: middle;
+  position: relative !important;
+  z-index: 10 !important; /* Keep above card click overlay */
 }
 
 .nlmf-notebook-tag {
@@ -250,6 +252,8 @@ body.dark-theme .nlmf-folder-item.active .nlmf-folder-count {
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s, transform 0.1s;
   user-select: none;
+  position: relative !important;
+  z-index: 10 !important; /* Keep above card click overlay */
 }
 
 .nlmf-notebook-tag:hover {
@@ -546,6 +550,6 @@ body.dark-theme .nlmf-modal-btn-primary {
 }
 
 /* Hide notebooks that don't match folder filter */
-tr.mat-mdc-row.nlmf-hidden {
+.nlmf-hidden {
   display: none !important;
 }
