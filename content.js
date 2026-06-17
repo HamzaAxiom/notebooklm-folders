@@ -62,6 +62,23 @@ function initStorageListener() {
   });
 }
 
+// Helper to execute DOM mutations safely without triggering infinite observer loops
+function runSafeDOMMutation(fn) {
+  if (observer) observer.disconnect();
+  try {
+    fn();
+  } catch (err) {
+    console.error('Error during DOM mutation:', err);
+  } finally {
+    if (observer) {
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
+  }
+}
+
 // MutationObserver to detect when the dashboard loads or changes
 let observer = null;
 function initObserver() {
@@ -70,9 +87,19 @@ function initObserver() {
   observer = new MutationObserver((mutations) => {
     const welcomeContainer = document.querySelector('.welcome-page-container');
     if (welcomeContainer) {
-      setupDashboardLayout(welcomeContainer);
-      injectTagsToRows();
-      applyFiltering();
+      runSafeDOMMutation(() => {
+        setupDashboardLayout(welcomeContainer);
+        injectTagsToRows();
+        applyFiltering();
+      });
+    } else {
+      // Hide sidebar if we navigate away from the dashboard (e.g. inside a notebook)
+      const sidebar = document.getElementById('nlmf-sidebar');
+      if (sidebar && sidebar.style.display !== 'none') {
+        runSafeDOMMutation(() => {
+          sidebar.style.display = 'none';
+        });
+      }
     }
   });
 
@@ -84,21 +111,27 @@ function initObserver() {
 
 // Wrap dashboard contents and insert sidebar
 function setupDashboardLayout(container) {
-  let sidebar = container.querySelector('.nlmf-sidebar');
+  let sidebar = document.getElementById('nlmf-sidebar');
 
-  if (sidebar) {
-    updateFolderCounts();
-    return;
+  if (!sidebar) {
+    sidebar = document.createElement('div');
+    sidebar.className = 'nlmf-sidebar';
+    sidebar.id = 'nlmf-sidebar';
+    document.body.appendChild(sidebar);
+    renderSidebar();
   }
 
-  sidebar = document.createElement('div');
-  sidebar.className = 'nlmf-sidebar';
-  sidebar.id = 'nlmf-sidebar';
+  // Ensure sidebar is visible
+  if (sidebar.style.display === 'none') {
+    sidebar.style.display = 'flex';
+  }
 
-  // Inject sidebar as first child of container
-  container.insertBefore(sidebar, container.firstChild);
+  // Shift welcome container content to the right to clear space for the fixed sidebar
+  if (container.style.paddingLeft !== '290px') {
+    container.style.setProperty('padding-left', '290px', 'important');
+  }
 
-  renderSidebar();
+  updateFolderCounts();
 }
 
 // Helper to extract notebook title from row
