@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Local Folders for NotebookLM",
+  "version": "1.0.0",
+  "description": "Organize your NotebookLM workspace into custom folders locally and privately.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://notebooklm.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://notebooklm.google.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
