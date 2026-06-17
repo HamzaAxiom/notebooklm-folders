@@ -1,6 +1,9 @@
 /* Styles for NotebookLM Folder Extension */
 
 :root {
+  --nlmf-sidebar-width: 250px;
+  --nlmf-sidebar-left: 24px;
+  --nlmf-sidebar-gap: 16px;
   --nlmf-bg-sidebar: rgba(255, 255, 255, 0.6);
   --nlmf-border: rgba(0, 0, 0, 0.08);
   --nlmf-text-primary: #1f1f1f;
@@ -36,18 +39,93 @@ body.dark-theme {
   --nlmf-scrollbar: rgba(255, 255, 255, 0.2);
 }
 
+/* Sidebar collapsed state overrides */
+body.nlmf-sidebar-collapsed {
+  --nlmf-sidebar-width: 52px;
+}
+
+body.nlmf-sidebar-collapsed .nlmf-sidebar {
+  padding: 16px 6px;
+}
+
+body.nlmf-sidebar-collapsed .nlmf-sidebar-title,
+body.nlmf-sidebar-collapsed .nlmf-folder-name,
+body.nlmf-sidebar-collapsed .nlmf-folder-count,
+body.nlmf-sidebar-collapsed .nlmf-folder-actions,
+body.nlmf-sidebar-collapsed .nlmf-add-folder-btn,
+body.nlmf-sidebar-collapsed .nlmf-dropdown-divider {
+  display: none !important;
+}
+
+body.nlmf-sidebar-collapsed .nlmf-sidebar-header {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  justify-content: center;
+}
+
+body.nlmf-sidebar-collapsed .nlmf-folder-item {
+  padding: 10px 0;
+  justify-content: center;
+}
+
+body.nlmf-sidebar-collapsed .nlmf-folder-emoji {
+  margin-right: 0;
+}
+
+/* Toggle Button Styling */
+.nlmf-toggle-btn {
+  position: absolute;
+  top: 16px;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--nlmf-card-bg);
+  border: 1px solid var(--nlmf-border);
+  color: var(--nlmf-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--nlmf-shadow);
+  z-index: 1001;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+  padding: 0;
+}
+
+.nlmf-toggle-btn:hover {
+  background: var(--nlmf-hover);
+  color: var(--nlmf-text-primary);
+  transform: scale(1.1);
+}
+
+.nlmf-toggle-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.nlmf-sidebar-collapsed .nlmf-toggle-btn svg {
+  transform: rotate(180deg);
+}
+
 /* Positioning adjustments for welcome-page-container and sidebar */
 .welcome-page-container {
-  margin-left: 290px !important; /* Push the entire container right to clear the fixed sidebar */
+  margin-left: calc(var(--nlmf-sidebar-left) + var(--nlmf-sidebar-width) + var(--nlmf-sidebar-gap)) !important;
+  /* Push the entire container right to clear the fixed sidebar */
   box-sizing: border-box !important;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Sidebar Styling */
 .nlmf-sidebar {
   position: fixed !important;
-  left: 24px !important;
-  top: 96px !important; /* Placed below Google's top bar */
-  width: 250px !important;
+  left: var(--nlmf-sidebar-left) !important;
+  top: 96px !important;
+  /* Placed below Google's top bar */
+  width: var(--nlmf-sidebar-width) !important;
   height: calc(100vh - 120px) !important;
   background: var(--nlmf-bg-sidebar);
   border: 1px solid var(--nlmf-border);
@@ -61,7 +139,7 @@ body.dark-theme {
   overflow-y: auto;
   box-shadow: var(--nlmf-shadow);
   backdrop-filter: blur(10px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000 !important;
 }
 
@@ -235,7 +313,8 @@ body.dark-theme .nlmf-folder-item.active .nlmf-folder-count {
   margin-left: 8px;
   vertical-align: middle;
   position: relative !important;
-  z-index: 10 !important; /* Keep above card click overlay */
+  z-index: 10 !important;
+  /* Keep above card click overlay */
 }
 
 .nlmf-notebook-tag {
@@ -253,7 +332,8 @@ body.dark-theme .nlmf-folder-item.active .nlmf-folder-count {
   transition: background 0.2s, border-color 0.2s, transform 0.1s;
   user-select: none;
   position: relative !important;
-  z-index: 10 !important; /* Keep above card click overlay */
+  z-index: 10 !important;
+  /* Keep above card click overlay */
 }
 
 .nlmf-notebook-tag:hover {
@@ -289,8 +369,15 @@ body.dark-theme .nlmf-folder-item.active .nlmf-folder-count {
 }
 
 @keyframes nlmf-fade-in {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .nlmf-dropdown-item {
@@ -359,8 +446,15 @@ body.dark-theme .nlmf-folder-item.active .nlmf-folder-count {
 }
 
 @keyframes nlmf-scale-in {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .nlmf-modal-header {

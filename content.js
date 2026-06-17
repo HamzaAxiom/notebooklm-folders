@@ -3,6 +3,7 @@
 let customFolders = [];
 let notebookFolderMap = {};
 let activeFolderId = 'all';
+let sidebarCollapsed = false;
 
 // Preset lists for beautiful folder creation
 const PRESET_EMOJIS = ['📁', '📂', '📈', '📊', '📐', '🧠', '🤖', '🎓', '🔬', '📝', '🎬', '💻', '🚀', '💼', '⚖️', '📜', '📔', '🌿', '💡', '📌'];
@@ -11,6 +12,7 @@ const PRESET_COLORS = ['#1a73e8', '#34a853', '#fbbc05', '#ea4335', '#a142f4', '#
 // Initialize extension
 async function init() {
   await loadData();
+  applySidebarCollapsedClass();
   initStorageListener();
   initObserver();
 }
@@ -18,10 +20,11 @@ async function init() {
 // Load data from chrome.storage.local
 async function loadData() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['customFolders', 'notebookFolderMap', 'activeFolderId'], (result) => {
+    chrome.storage.local.get(['customFolders', 'notebookFolderMap', 'activeFolderId', 'sidebarCollapsed'], (result) => {
       customFolders = result.customFolders || [];
       notebookFolderMap = result.notebookFolderMap || {};
       activeFolderId = result.activeFolderId || 'all';
+      sidebarCollapsed = result.sidebarCollapsed || false;
       resolve();
     });
   });
@@ -32,7 +35,8 @@ function saveData() {
   chrome.storage.local.set({
     customFolders,
     notebookFolderMap,
-    activeFolderId
+    activeFolderId,
+    sidebarCollapsed
   });
 }
 
@@ -53,6 +57,11 @@ function initStorageListener() {
         activeFolderId = changes.activeFolderId.newValue || 'all';
         changed = true;
       }
+      if (changes.sidebarCollapsed) {
+        sidebarCollapsed = changes.sidebarCollapsed.newValue || false;
+        applySidebarCollapsedClass();
+        changed = true;
+      }
       if (changed) {
         renderSidebar();
         injectFolderTags();
@@ -60,6 +69,14 @@ function initStorageListener() {
       }
     }
   });
+}
+
+function applySidebarCollapsedClass() {
+  if (sidebarCollapsed) {
+    document.body.classList.add('nlmf-sidebar-collapsed');
+  } else {
+    document.body.classList.remove('nlmf-sidebar-collapsed');
+  }
 }
 
 // Helper to execute DOM mutations safely without triggering infinite observer loops
@@ -111,6 +128,7 @@ function initObserver() {
 
 // Wrap dashboard contents and insert sidebar
 function setupDashboardLayout(container) {
+  applySidebarCollapsedClass();
   let sidebar = document.getElementById('nlmf-sidebar');
 
   if (!sidebar) {
@@ -126,9 +144,9 @@ function setupDashboardLayout(container) {
     sidebar.style.display = 'flex';
   }
 
-  // Shift welcome container content to the right to clear space for the fixed sidebar
-  if (container.style.paddingLeft !== '290px') {
-    container.style.setProperty('padding-left', '290px', 'important');
+  // Clear inline padding-left to let stylesheet control it via CSS variables
+  if (container.style.paddingLeft) {
+    container.style.removeProperty('padding-left');
   }
 
   updateFolderCounts();
@@ -147,6 +165,9 @@ function renderSidebar() {
   if (!sidebar) return;
 
   sidebar.innerHTML = `
+    <button class="nlmf-toggle-btn" title="Toggle Sidebar">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+    </button>
     <div class="nlmf-sidebar-header">
       <h3 class="nlmf-sidebar-title">Folders</h3>
       <button class="nlmf-add-folder-btn" title="Create New Folder">
@@ -225,6 +246,13 @@ function renderSidebar() {
 
   sidebar.querySelector('.nlmf-add-folder-btn').addEventListener('click', () => {
     showFolderModal();
+  });
+
+  sidebar.querySelector('.nlmf-toggle-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sidebarCollapsed = !sidebarCollapsed;
+    saveData();
+    applySidebarCollapsedClass();
   });
 
   updateFolderCounts();
