@@ -85,39 +85,18 @@ function initObserver() {
 // Wrap dashboard contents and insert sidebar
 function setupDashboardLayout(container) {
   let sidebar = container.querySelector('.nlmf-sidebar');
-  let wrapper = container.querySelector('.nlmf-main-content-wrapper');
 
-  if (sidebar && wrapper) {
+  if (sidebar) {
     updateFolderCounts();
     return;
   }
 
-  if (!sidebar) {
-    sidebar = document.createElement('div');
-    sidebar.className = 'nlmf-sidebar';
-    sidebar.id = 'nlmf-sidebar';
-  }
+  sidebar = document.createElement('div');
+  sidebar.className = 'nlmf-sidebar';
+  sidebar.id = 'nlmf-sidebar';
 
-  if (!wrapper) {
-    wrapper = document.createElement('div');
-    wrapper.className = 'nlmf-main-content-wrapper';
-
-    // Move existing children (excluding sidebar) to wrapper
-    const children = Array.from(container.children);
-    children.forEach(child => {
-      if (child !== sidebar && child.id !== 'nlmf-sidebar') {
-        wrapper.appendChild(child);
-      }
-    });
-  }
-
-  // Inject sidebar as first, and wrapper as second child
-  if (container.firstChild !== sidebar) {
-    container.insertBefore(sidebar, container.firstChild);
-  }
-  if (sidebar.nextSibling !== wrapper) {
-    container.insertBefore(wrapper, sidebar.nextSibling);
-  }
+  // Inject sidebar as first child of container
+  container.insertBefore(sidebar, container.firstChild);
 
   renderSidebar();
 }

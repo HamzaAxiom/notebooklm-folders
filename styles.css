@@ -36,29 +36,19 @@ body.dark-theme {
   --nlmf-scrollbar: rgba(255, 255, 255, 0.2);
 }
 
-/* Flex layout adjust for welcome-page-container */
+/* Positioning adjustments for welcome-page-container and sidebar */
 .welcome-page-container.welcome-page-container-featured-projects-enabled-tab-view {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: flex-start !important;
-  gap: 24px !important;
-  padding: 0 24px 24px 24px !important;
+  position: relative !important;
+  padding-left: 290px !important; /* 250px sidebar + 24px gap + 16px margin */
   box-sizing: border-box !important;
-}
-
-/* Content wrapper next to sidebar */
-.nlmf-main-content-wrapper {
-  flex-grow: 1 !important;
-  min-width: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 20px !important;
 }
 
 /* Sidebar Styling */
 .nlmf-sidebar {
-  width: 250px;
-  flex-shrink: 0;
+  position: absolute !important;
+  left: 24px !important;
+  top: 24px !important;
+  width: 250px !important;
   background: var(--nlmf-bg-sidebar);
   border: 1px solid var(--nlmf-border);
   border-radius: 16px;
@@ -68,8 +58,6 @@ body.dark-theme {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  position: sticky;
-  top: 80px;
   max-height: calc(100vh - 110px);
   overflow-y: auto;
   box-shadow: var(--nlmf-shadow);
